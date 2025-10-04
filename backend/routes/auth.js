@@ -5,26 +5,41 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/emailService');
 const { auth } = require('../middleware/auth');
-const connectDB = require('../config/database');
 
 const router = express.Router();
 
-// Helper function to ensure database connection in Vercel
-const ensureDBConnection = async () => {
-  try {
-    if (process.env.VERCEL) {
-      console.log('Vercel environment detected');
-      if (mongoose.connection.readyState !== 1) {
-        console.log('Establishing new MongoDB connection...');
-        await connectDB(); // Use the same connection function as the main app
-        console.log('MongoDB connection established via connectDB');
-      } else {
-        console.log('MongoDB already connected');
+// Test route to check if auth routes are working
+router.get('/test', (req, res) => {
+  res.json({
+    message: 'Auth routes are working',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Simplified database connection for Vercel
+const connectToDatabase = async () => {
+  // In Vercel, we need to ensure connection for each request
+  if (process.env.VERCEL) {
+    console.log('Vercel environment: checking database connection');
+    
+    // If not connected, establish connection
+    if (mongoose.connection.readyState !== 1) {
+      console.log('Establishing new database connection');
+      try {
+        await mongoose.connect(process.env.MONGODB_URI, {
+          useNewUrlParser: true,
+          useUnifiedTopology: true,
+          serverSelectionTimeoutMS: 5000,
+          socketTimeoutMS: 10000,
+        });
+        console.log('Database connected successfully');
+      } catch (error) {
+        console.error('Database connection failed:', error.message);
+        throw new Error('Failed to connect to database');
       }
+    } else {
+      console.log('Database already connected');
     }
-  } catch (error) {
-    console.error('Error in ensureDBConnection:', error.message);
-    throw error;
   }
 };
 
@@ -33,25 +48,26 @@ const ensureDBConnection = async () => {
 // @access  Public
 router.post('/signup', async (req, res) => {
   try {
-    console.log('Signup request received:', req.body);
+    console.log('Signup request received');
     
-    // Ensure database connection in Vercel environment
-    await ensureDBConnection();
+    // Ensure database connection
+    await connectToDatabase();
     
     const { firstName, lastName, email, password, phone, userType, department, schoolSection } = req.body;
+    console.log('Request body:', { firstName, lastName, email, phone, userType, department, schoolSection });
 
-    console.log('Checking for existing user with email:', email.toLowerCase());
     // Check if user already exists
+    console.log('Checking for existing user');
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      console.log('User already exists with this email');
+      console.log('User already exists');
       return res.status(400).json({ 
         message: 'Email address is already registered. Please use a different email or try logging in.' 
       });
     }
 
-    console.log('Creating new user');
     // Create new user
+    console.log('Creating new user');
     const user = new User({
       firstName,
       lastName,
@@ -64,16 +80,7 @@ router.post('/signup', async (req, res) => {
     });
 
     await user.save();
-    console.log('User saved successfully');
-
-    // Send welcome email (don't block if it fails)
-    try {
-      console.log('Sending welcome email');
-      await sendWelcomeEmail(email, firstName, userType);
-      console.log('Welcome email sent');
-    } catch (emailError) {
-      console.error('Welcome email failed:', emailError.message);
-    }
+    console.log('User created successfully');
 
     // Generate JWT token
     console.log('Generating JWT token');
@@ -83,7 +90,6 @@ router.post('/signup', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    console.log('Signup successful');
     res.status(201).json({
       message: 'User registered successfully',
       token,
@@ -94,23 +100,12 @@ router.post('/signup', async (req, res) => {
     console.error('Signup error:', error);
     console.error('Error stack:', error.stack);
     
-    // Handle specific validation errors
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ message: errors.join('. ') });
     }
 
-    // Handle duplicate email error
-    if (error.message && error.message.includes('Email address is already registered')) {
-      return res.status(400).json({ message: error.message });
-    }
-
-    // Handle MongoDB connection errors
-    if (error.name === 'MongoNetworkError' || error.name === 'MongooseServerSelectionError') {
-      return res.status(500).json({ message: 'Database connection error. Please try again later.' });
-    }
-
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ message: 'Server error during registration: ' + error.message });
   }
 });
 
@@ -119,42 +114,31 @@ router.post('/signup', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
-    console.log('Login request received:', req.body);
+    console.log('Login request received');
     
-    // Ensure database connection in Vercel environment
-    await ensureDBConnection();
+    // Ensure database connection
+    await connectToDatabase();
     
     const { email, password } = req.body;
-    console.log('Login attempt for email:', email);
+    console.log('Login attempt for:', email);
 
-    // Check if user exists by email or username
-    let user;
-    if (email.includes('@')) {
-      // Login with email
-      console.log('Searching for user by email');
-      user = await User.findOne({ email: email.toLowerCase() });
-    } else {
-      // Login with username (for now we'll treat it as email)
-      console.log('Searching for user by username/email');
-      user = await User.findOne({ email: email.toLowerCase() });
-    }
-
+    // Check if user exists
+    console.log('Searching for user');
+    const user = await User.findOne({ email: email.toLowerCase() });
+    
     if (!user) {
       console.log('User not found');
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    console.log('User found:', user.email, user.userType, user.status);
+    console.log('User found:', user.email, user.userType);
 
-    // Check if account is suspended
+    // Check account status
     if (user.status === 'suspended') {
-      console.log('Account suspended');
       return res.status(403).json({ message: 'Your account has been suspended. Please contact administrator.' });
     }
 
-    // Check if faculty account is still pending
     if (user.userType === 'faculty' && user.status === 'pending') {
-      console.log('Faculty account pending approval');
       return res.status(403).json({ 
         message: 'Your faculty account is pending approval. Please wait for administrator approval.' 
       });
@@ -176,7 +160,7 @@ router.post('/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    console.log('Login successful for user:', user.email);
+    console.log('Login successful');
     res.json({
       message: 'Login successful',
       token,
@@ -186,13 +170,7 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     console.error('Error stack:', error.stack);
-    
-    // Handle MongoDB connection errors
-    if (error.name === 'MongoNetworkError' || error.name === 'MongooseServerSelectionError') {
-      return res.status(500).json({ message: 'Database connection error. Please try again later.' });
-    }
-    
-    res.status(500).json({ message: 'Server error during login' });
+    res.status(500).json({ message: 'Server error during login: ' + error.message });
   }
 });
 
@@ -367,14 +345,6 @@ router.put('/change-password', auth, async (req, res) => {
     console.error('Change password error:', error);
     res.status(500).json({ message: 'Server error during password change' });
   }
-});
-
-// Test route to check if auth routes are working
-router.get('/test', (req, res) => {
-  res.json({
-    message: 'Auth routes are working',
-    timestamp: new Date().toISOString()
-  });
 });
 
 module.exports = router;

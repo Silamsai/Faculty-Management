@@ -96,15 +96,22 @@ app.get('/api/health', (req, res) => {
 
 // Test route for debugging environment variables
 app.get('/api/test-env', (req, res) => {
+  // Check if required environment variables are set
+  const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+  const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+  
   res.json({
     vercel: process.env.VERCEL || 'not set',
     mongodb_uri: process.env.MONGODB_URI ? 'IS SET' : 'NOT SET',
     jwt_secret: process.env.JWT_SECRET ? 'IS SET' : 'NOT SET',
+    jwt_secret_length: process.env.JWT_SECRET ? process.env.JWT_SECRET.length : 0,
     node_env: process.env.NODE_ENV || 'not set',
     frontend_url: process.env.FRONTEND_URL || 'not set',
     allowed_origins: process.env.ALLOWED_ORIGINS || 'not set',
     mongoose_ready_state: mongoose.connection.readyState,
-    mongoose_ready_state_desc: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown'
+    mongoose_ready_state_desc: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown',
+    missing_env_vars: missingEnvVars,
+    timestamp: new Date().toISOString()
   });
 });
 
