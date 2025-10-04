@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: import.meta.env.PROD 
+    ? 'https://faculty-management-2apo.vercel.app/api'  // Using the shorter domain for production
+    : 'http://localhost:5000/api',
   headers: {
     'Content-Type': 'application/json'
   },
