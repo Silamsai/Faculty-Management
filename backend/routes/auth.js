@@ -10,11 +10,20 @@ const router = express.Router();
 
 // Helper function to ensure database connection in Vercel
 const ensureDBConnection = async () => {
-  if (process.env.VERCEL && mongoose.connection.readyState !== 1) {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+  if (process.env.VERCEL) {
+    console.log('Vercel environment detected');
+    if (mongoose.connection.readyState !== 1) {
+      console.log('Establishing new MongoDB connection...');
+      await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000, // 5 second timeout
+        socketTimeoutMS: 45000, // 45 second timeout
+      });
+      console.log('MongoDB connection established');
+    } else {
+      console.log('MongoDB already connected');
+    }
   }
 };
 
@@ -23,19 +32,24 @@ const ensureDBConnection = async () => {
 // @access  Public
 router.post('/signup', async (req, res) => {
   try {
+    console.log('Signup request received:', req.body);
+    
     // Ensure database connection in Vercel environment
     await ensureDBConnection();
     
     const { firstName, lastName, email, password, phone, userType, department, schoolSection } = req.body;
 
+    console.log('Checking for existing user with email:', email.toLowerCase());
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
+      console.log('User already exists with this email');
       return res.status(400).json({ 
         message: 'Email address is already registered. Please use a different email or try logging in.' 
       });
     }
 
+    console.log('Creating new user');
     // Create new user
     const user = new User({
       firstName,
@@ -49,21 +63,26 @@ router.post('/signup', async (req, res) => {
     });
 
     await user.save();
+    console.log('User saved successfully');
 
     // Send welcome email (don't block if it fails)
     try {
+      console.log('Sending welcome email');
       await sendWelcomeEmail(email, firstName, userType);
+      console.log('Welcome email sent');
     } catch (emailError) {
       console.error('Welcome email failed:', emailError.message);
     }
 
     // Generate JWT token
+    console.log('Generating JWT token');
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
+    console.log('Signup successful');
     res.status(201).json({
       message: 'User registered successfully',
       token,
@@ -93,50 +112,64 @@ router.post('/signup', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
+    console.log('Login request received:', req.body);
+    
     // Ensure database connection in Vercel environment
     await ensureDBConnection();
     
     const { email, password } = req.body;
+    console.log('Login attempt for email:', email);
 
     // Check if user exists by email or username
     let user;
     if (email.includes('@')) {
       // Login with email
+      console.log('Searching for user by email');
       user = await User.findOne({ email: email.toLowerCase() });
     } else {
       // Login with username (for now we'll treat it as email)
+      console.log('Searching for user by username/email');
       user = await User.findOne({ email: email.toLowerCase() });
     }
 
     if (!user) {
+      console.log('User not found');
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
+    console.log('User found:', user.email, user.userType, user.status);
+
     // Check if account is suspended
     if (user.status === 'suspended') {
+      console.log('Account suspended');
       return res.status(403).json({ message: 'Your account has been suspended. Please contact administrator.' });
     }
 
     // Check if faculty account is still pending
     if (user.userType === 'faculty' && user.status === 'pending') {
+      console.log('Faculty account pending approval');
       return res.status(403).json({ 
         message: 'Your faculty account is pending approval. Please wait for administrator approval.' 
       });
     }
 
     // Check password
+    console.log('Checking password');
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
+      console.log('Invalid password');
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
     // Generate JWT token
+    console.log('Generating JWT token');
     const token = jwt.sign(
       { userId: user._id },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
+    console.log('Login successful for user:', user.email);
     res.json({
       message: 'Login successful',
       token,

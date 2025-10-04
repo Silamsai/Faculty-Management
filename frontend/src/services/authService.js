@@ -5,6 +5,7 @@ const authService = {
   // User registration
   signup: async (userData) => {
     try {
+      console.log('AuthService: Attempting signup', userData);
       const response = await api.post('/auth/signup', userData);
       
       // Store token and user data
@@ -15,6 +16,7 @@ const authService = {
       
       return response.data;
     } catch (error) {
+      console.error('AuthService: Signup error', error);
       throw error;
     }
   },
@@ -22,6 +24,7 @@ const authService = {
   // User login
   login: async (loginData) => {
     try {
+      console.log('AuthService: Attempting login', loginData);
       const response = await api.post('/auth/login', loginData);
       
       // Store token and user data
@@ -32,6 +35,7 @@ const authService = {
       
       return response.data;
     } catch (error) {
+      console.error('AuthService: Login error', error);
       throw error;
     }
   },
