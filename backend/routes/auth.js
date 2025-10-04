@@ -5,25 +5,26 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/emailService');
 const { auth } = require('../middleware/auth');
+const connectDB = require('../config/database');
 
 const router = express.Router();
 
 // Helper function to ensure database connection in Vercel
 const ensureDBConnection = async () => {
-  if (process.env.VERCEL) {
-    console.log('Vercel environment detected');
-    if (mongoose.connection.readyState !== 1) {
-      console.log('Establishing new MongoDB connection...');
-      await mongoose.connect(process.env.MONGODB_URI, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-        serverSelectionTimeoutMS: 5000, // 5 second timeout
-        socketTimeoutMS: 45000, // 45 second timeout
-      });
-      console.log('MongoDB connection established');
-    } else {
-      console.log('MongoDB already connected');
+  try {
+    if (process.env.VERCEL) {
+      console.log('Vercel environment detected');
+      if (mongoose.connection.readyState !== 1) {
+        console.log('Establishing new MongoDB connection...');
+        await connectDB(); // Use the same connection function as the main app
+        console.log('MongoDB connection established via connectDB');
+      } else {
+        console.log('MongoDB already connected');
+      }
     }
+  } catch (error) {
+    console.error('Error in ensureDBConnection:', error.message);
+    throw error;
   }
 };
 
@@ -91,6 +92,7 @@ router.post('/signup', async (req, res) => {
 
   } catch (error) {
     console.error('Signup error:', error);
+    console.error('Error stack:', error.stack);
     
     // Handle specific validation errors
     if (error.name === 'ValidationError') {
@@ -99,8 +101,13 @@ router.post('/signup', async (req, res) => {
     }
 
     // Handle duplicate email error
-    if (error.message.includes('Email address is already registered')) {
+    if (error.message && error.message.includes('Email address is already registered')) {
       return res.status(400).json({ message: error.message });
+    }
+
+    // Handle MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongooseServerSelectionError') {
+      return res.status(500).json({ message: 'Database connection error. Please try again later.' });
     }
 
     res.status(500).json({ message: 'Server error during registration' });
@@ -178,6 +185,13 @@ router.post('/login', async (req, res) => {
 
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error stack:', error.stack);
+    
+    // Handle MongoDB connection errors
+    if (error.name === 'MongoNetworkError' || error.name === 'MongooseServerSelectionError') {
+      return res.status(500).json({ message: 'Database connection error. Please try again later.' });
+    }
+    
     res.status(500).json({ message: 'Server error during login' });
   }
 });

@@ -3,10 +3,17 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
+    console.log('Attempting to connect to MongoDB...');
+    console.log('MONGODB_URI present:', !!process.env.MONGODB_URI);
+    
+    // Check if MONGODB_URI is defined
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is not defined in environment variables');
+    }
+
     // In Vercel environment, we still need to connect to MongoDB
     if (process.env.VERCEL) {
       console.log('Running in Vercel environment - establishing MongoDB connection');
-      // Don't return early, still connect in Vercel
     }
 
     // Check if already connected
@@ -18,15 +25,19 @@ const connectDB = async () => {
     const conn = await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 5000, // 5 second timeout
+      socketTimeoutMS: 45000, // 45 second timeout
     });
 
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
     console.error('Database connection error:', error.message);
+    console.error('Error stack:', error.stack);
     // Don't exit in Vercel environment as it can cause issues
     if (!process.env.VERCEL) {
       process.exit(1);
     }
+    throw error; // Re-throw the error so it can be handled by the calling function
   }
 };
 

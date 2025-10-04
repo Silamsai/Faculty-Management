@@ -2,6 +2,13 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+// Log environment variables for debugging (remove in production)
+console.log('Environment variables check:');
+console.log('VERCEL:', process.env.VERCEL);
+console.log('MONGODB_URI present:', !!process.env.MONGODB_URI);
+console.log('JWT_SECRET present:', !!process.env.JWT_SECRET);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 const connectDB = require('./config/database');
 
 // Import routes
@@ -18,7 +25,9 @@ const subjectRoutes = require('./routes/subjects');
 const app = express();
 
 // Connect to MongoDB (will be handled per request in Vercel)
-connectDB();
+connectDB().catch(err => {
+  console.error('Failed to connect to MongoDB:', err);
+});
 
 // Configure CORS with multiple allowed origins including Vercel domains
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
@@ -80,13 +89,15 @@ app.get('/api/health', (req, res) => {
     message: 'Faculty Management System API is running!',
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
-    vercel: process.env.VERCEL ? 'true' : 'false'
+    vercel: process.env.VERCEL ? 'true' : 'false',
+    mongodbConnected: mongoose.connection.readyState === 1
   });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
+  console.error('Global error handler:', err.message);
+  console.error('Error stack:', err.stack);
   res.status(err.status || 500).json({
     message: err.message || 'Internal Server Error',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
