@@ -92,8 +92,10 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// For Vercel, we need to export the app
-module.exports = app;
+// For Vercel, we need to export the app as a serverless function
+module.exports = (req, res) => {
+  return app(req, res);
+};
 
 // Only start the server if this file is run directly (not in Vercel)
 if (require.main === module) {
@@ -103,9 +105,4 @@ if (require.main === module) {
     console.log(`Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
   });
-}
-
-// Vercel serverless function handler
-module.exports = (req, res) => {
-  return app(req, res);
 };
