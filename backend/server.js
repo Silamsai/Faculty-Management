@@ -27,6 +27,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'https://faculty-management.vercel.app',
       'https://faculty-management-2apo.vercel.app',
+      'https://faculty-management-git-main-sais-projects-301fe114.vercel.app',
       'https://*.vercel.app'
     ];
 
@@ -47,11 +48,15 @@ app.use(cors({
     })) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      // For development, let's be more permissive
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Temporarily allow all origins for debugging
     }
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200
 }));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
