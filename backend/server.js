@@ -94,6 +94,44 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Test route for debugging environment variables
+app.get('/api/test-env', (req, res) => {
+  res.json({
+    vercel: process.env.VERCEL || 'not set',
+    mongodb_uri: process.env.MONGODB_URI ? 'IS SET' : 'NOT SET',
+    jwt_secret: process.env.JWT_SECRET ? 'IS SET' : 'NOT SET',
+    node_env: process.env.NODE_ENV || 'not set',
+    frontend_url: process.env.FRONTEND_URL || 'not set',
+    allowed_origins: process.env.ALLOWED_ORIGINS || 'not set',
+    mongoose_ready_state: mongoose.connection.readyState,
+    mongoose_ready_state_desc: ['disconnected', 'connected', 'connecting', 'disconnecting'][mongoose.connection.readyState] || 'unknown'
+  });
+});
+
+// Test route for database connection
+app.get('/api/test-db', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState === 1) {
+      // Try a simple database operation
+      const collections = await mongoose.connection.db.listCollections().toArray();
+      res.json({
+        status: 'connected',
+        collections: collections.map(c => c.name)
+      });
+    } else {
+      res.status(500).json({
+        status: 'disconnected',
+        readyState: mongoose.connection.readyState
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err.message);
