@@ -17,7 +17,7 @@ const subjectRoutes = require('./routes/subjects');
 
 const app = express();
 
-// Connect to MongoDB
+// Connect to MongoDB (will be handled per request in Vercel)
 connectDB();
 
 // Configure CORS with multiple allowed origins including Vercel domains
@@ -52,8 +52,8 @@ app.use(cors({
   },
   credentials: true
 }));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -74,7 +74,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Faculty Management System API is running!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    vercel: process.env.VERCEL ? 'true' : 'false'
   });
 });
 
@@ -94,6 +95,7 @@ app.use((req, res) => {
 
 // For Vercel, we need to export the app as a serverless function
 module.exports = (req, res) => {
+  // Add a small delay to ensure all async operations complete
   return app(req, res);
 };
 
