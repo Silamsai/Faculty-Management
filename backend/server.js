@@ -20,18 +20,36 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Configure CORS with multiple allowed origins including Vercel
+// Configure CORS with multiple allowed origins including Vercel domains
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
   : [
       process.env.FRONTEND_URL || 'http://localhost:5173',
       'https://faculty-management.vercel.app',
+      'https://faculty-management-2apo.vercel.app',
       'https://*.vercel.app'
     ];
 
 // Middleware
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if the origin is in our allowed list
+    if (allowedOrigins.some(allowedOrigin => {
+      if (allowedOrigin.includes('*')) {
+        // Handle wildcard domains
+        const regex = new RegExp(allowedOrigin.replace('*', '.*'));
+        return regex.test(origin);
+      }
+      return allowedOrigin === origin;
+    })) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
