@@ -1,17 +1,31 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/emailService');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to ensure database connection in Vercel
+const ensureDBConnection = async () => {
+  if (process.env.VERCEL && mongoose.connection.readyState !== 1) {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+  }
+};
+
 // @route   POST /api/auth/signup
 // @desc    Register a new user
 // @access  Public
 router.post('/signup', async (req, res) => {
   try {
+    // Ensure database connection in Vercel environment
+    await ensureDBConnection();
+    
     const { firstName, lastName, email, password, phone, userType, department, schoolSection } = req.body;
 
     // Check if user already exists
@@ -79,6 +93,9 @@ router.post('/signup', async (req, res) => {
 // @access  Public
 router.post('/login', async (req, res) => {
   try {
+    // Ensure database connection in Vercel environment
+    await ensureDBConnection();
+    
     const { email, password } = req.body;
 
     // Check if user exists by email or username

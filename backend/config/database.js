@@ -3,9 +3,15 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    // In Vercel environment, we don't need to connect to MongoDB as it's handled per request
+    // In Vercel environment, we still need to connect to MongoDB
     if (process.env.VERCEL) {
-      console.log('Running in Vercel environment - MongoDB connection handled per request');
+      console.log('Running in Vercel environment - establishing MongoDB connection');
+      // Don't return early, still connect in Vercel
+    }
+
+    // Check if already connected
+    if (mongoose.connection.readyState === 1) {
+      console.log('MongoDB already connected');
       return;
     }
 
