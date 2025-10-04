@@ -3,17 +3,36 @@ const cors = require('cors');
 require('dotenv').config();
 
 const mongoose = require('mongoose');
-const connectDB = require('./config/database');
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const leaveRoutes = require('./routes/leaves');
-const publicationRoutes = require('./routes/publications');
-const facultyApplicationRoutes = require('./routes/facultyApplications');
-const galleryRoutes = require('./routes/gallery');
-const scheduleChangeRoutes = require('./routes/scheduleChanges');
-const subjectRoutes = require('./routes/subjects');
+// Handle different deployment scenarios (root vs backend directory)
+let connectDB;
+let authRoutes, userRoutes, leaveRoutes, publicationRoutes, facultyApplicationRoutes, galleryRoutes, scheduleChangeRoutes, subjectRoutes;
+
+try {
+  // Try importing from backend directory (when running from repo root)
+  connectDB = require('./backend/config/database');
+  authRoutes = require('./backend/routes/auth');
+  userRoutes = require('./backend/routes/users');
+  leaveRoutes = require('./backend/routes/leaves');
+  publicationRoutes = require('./backend/routes/publications');
+  facultyApplicationRoutes = require('./backend/routes/facultyApplications');
+  galleryRoutes = require('./backend/routes/gallery');
+  scheduleChangeRoutes = require('./backend/routes/scheduleChanges');
+  subjectRoutes = require('./backend/routes/subjects');
+  console.log('✅ Imported routes and config from backend directory (repo root deployment)');
+} catch (error) {
+  // Fallback to current directory imports (when running from backend directory)
+  connectDB = require('./config/database');
+  authRoutes = require('./routes/auth');
+  userRoutes = require('./routes/users');
+  leaveRoutes = require('./routes/leaves');
+  publicationRoutes = require('./routes/publications');
+  facultyApplicationRoutes = require('./routes/facultyApplications');
+  galleryRoutes = require('./routes/gallery');
+  scheduleChangeRoutes = require('./routes/scheduleChanges');
+  subjectRoutes = require('./routes/subjects');
+  console.log('✅ Imported routes and config from current directory (backend deployment)');
+}
 
 const app = express();
 
@@ -62,15 +81,39 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/leaves', leaveRoutes);
-app.use('/api/publications', publicationRoutes);
-app.use('/api/faculty-applications', facultyApplicationRoutes);
-app.use('/api/gallery', galleryRoutes);
-app.use('/api/schedule-changes', scheduleChangeRoutes);
-app.use('/api/subjects', subjectRoutes);
+// Routes with verification logs
+app.use('/api/auth', authRoutes, (req, res, next) => {
+  console.log("✅ Auth routes mounted at /api/auth");
+  next();
+});
+app.use('/api/users', userRoutes, (req, res, next) => {
+  console.log("✅ Users routes mounted at /api/users");
+  next();
+});
+app.use('/api/leaves', leaveRoutes, (req, res, next) => {
+  console.log("✅ Leaves routes mounted at /api/leaves");
+  next();
+});
+app.use('/api/publications', publicationRoutes, (req, res, next) => {
+  console.log("✅ Publications routes mounted at /api/publications");
+  next();
+});
+app.use('/api/faculty-applications', facultyApplicationRoutes, (req, res, next) => {
+  console.log("✅ Faculty applications routes mounted at /api/faculty-applications");
+  next();
+});
+app.use('/api/gallery', galleryRoutes, (req, res, next) => {
+  console.log("✅ Gallery routes mounted at /api/gallery");
+  next();
+});
+app.use('/api/schedule-changes', scheduleChangeRoutes, (req, res, next) => {
+  console.log("✅ Schedule changes routes mounted at /api/schedule-changes");
+  next();
+});
+app.use('/api/subjects', subjectRoutes, (req, res, next) => {
+  console.log("✅ Subjects routes mounted at /api/subjects");
+  next();
+});
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));

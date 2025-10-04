@@ -9,6 +9,7 @@ const router = express.Router();
 
 // Test route to check if auth routes are working
 router.get('/test', (req, res) => {
+  console.log('✅ Auth test route accessed');
   res.json({
     message: 'Auth routes are working',
     timestamp: new Date().toISOString()
@@ -108,10 +109,11 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// @route   POST /api/auth/login
-// @desc    Login user
-// @access  Public
+// Login route with additional logging
 router.post('/login', async (req, res) => {
+  console.log('🔑 Login route accessed');
+  console.log('🔑 Request body:', req.body);
+  
   try {
     console.log('Login request received');
     
