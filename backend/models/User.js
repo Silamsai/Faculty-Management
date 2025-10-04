@@ -162,4 +162,14 @@ userSchema.post('save', function(error, doc, next) {
   }
 });
 
-module.exports = mongoose.model('User', userSchema);
+// For Vercel serverless functions, we need to handle model caching
+let User;
+try {
+  // Try to get existing model
+  User = mongoose.model('User');
+} catch {
+  // If model doesn't exist, create it
+  User = mongoose.model('User', userSchema);
+}
+
+module.exports = User;

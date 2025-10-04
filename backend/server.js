@@ -2,13 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-// Log environment variables for debugging (remove in production)
-console.log('Environment variables check:');
-console.log('VERCEL:', process.env.VERCEL);
-console.log('MONGODB_URI present:', !!process.env.MONGODB_URI);
-console.log('JWT_SECRET present:', !!process.env.JWT_SECRET);
-console.log('NODE_ENV:', process.env.NODE_ENV);
-
+const mongoose = require('mongoose');
 const connectDB = require('./config/database');
 
 // Import routes
@@ -20,11 +14,10 @@ const facultyApplicationRoutes = require('./routes/facultyApplications');
 const galleryRoutes = require('./routes/gallery');
 const scheduleChangeRoutes = require('./routes/scheduleChanges');
 const subjectRoutes = require('./routes/subjects');
-// Removed jobPostingRoutes import
 
 const app = express();
 
-// Connect to MongoDB (will be handled per request in Vercel)
+// Connect to MongoDB
 connectDB().catch(err => {
   console.error('Failed to connect to MongoDB:', err);
 });
@@ -59,7 +52,7 @@ app.use(cors({
     } else {
       // For development, let's be more permissive
       console.log('CORS blocked origin:', origin);
-      callback(null, true); // Temporarily allow all origins for debugging
+      callback(null, true);
     }
   },
   credentials: true,
@@ -78,7 +71,6 @@ app.use('/api/faculty-applications', facultyApplicationRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/schedule-changes', scheduleChangeRoutes);
 app.use('/api/subjects', subjectRoutes);
-// Removed job postings route
 
 // Static file serving for uploads
 app.use('/uploads', express.static('uploads'));
@@ -154,18 +146,8 @@ app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// For Vercel, we need to export the app as a serverless function
-module.exports = (req, res) => {
-  // Add a small delay to ensure all async operations complete
-  return app(req, res);
-};
-
-// Only start the server if this file is run directly (not in Vercel)
-if (require.main === module) {
-  const PORT = process.env.PORT || 5000;
-  
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV}`);
-  });
-};
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌿 Environment: ${process.env.NODE_ENV}`);
+});

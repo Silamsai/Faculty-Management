@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const mongoose = require('mongoose');
 const User = require('../models/User');
 const { sendPasswordResetEmail, sendWelcomeEmail } = require('../utils/emailService');
-const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -181,6 +180,9 @@ router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
 
+    // Ensure database connection
+    await connectToDatabase();
+
     // Check if user exists
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
@@ -238,6 +240,9 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
+    // Ensure database connection
+    await connectToDatabase();
+
     // Hash the token to compare with database
     const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -276,6 +281,9 @@ router.get('/verify-reset-token/:token', async (req, res) => {
       return res.status(400).json({ message: 'Token is required' });
     }
 
+    // Ensure database connection
+    await connectToDatabase();
+
     // Hash the token to compare with database
     const resetTokenHash = crypto.createHash('sha256').update(token).digest('hex');
 
@@ -300,22 +308,46 @@ router.get('/verify-reset-token/:token', async (req, res) => {
 // @route   GET /api/auth/verify
 // @desc    Verify JWT token
 // @access  Private
-router.get('/verify', auth, async (req, res) => {
+router.get('/verify', async (req, res) => {
   try {
+    // Ensure database connection
+    await connectToDatabase();
+    
+    // Get token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided, access denied' });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Token is not valid, user not found' });
+    }
+
+    if (user.status === 'suspended') {
+      return res.status(403).json({ message: 'Account is suspended' });
+    }
+
     res.json({
       message: 'Token is valid',
-      user: req.user.getProfile()
+      user: user.getProfile()
     });
   } catch (error) {
     console.error('Token verification error:', error);
-    res.status(500).json({ message: 'Server error during token verification' });
+    res.status(401).json({ message: 'Token is not valid' });
   }
 });
 
 // @route   PUT /api/auth/change-password
 // @desc    Change password for authenticated user
 // @access  Private
-router.put('/change-password', auth, async (req, res) => {
+router.put('/change-password', async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
@@ -327,8 +359,26 @@ router.put('/change-password', auth, async (req, res) => {
       return res.status(400).json({ message: 'New password must be at least 8 characters long' });
     }
 
-    const user = await User.findById(req.user._id);
+    // Ensure database connection
+    await connectToDatabase();
+
+    // Get token from header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
     
+    if (!token) {
+      return res.status(401).json({ message: 'No token provided, access denied' });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ message: 'Token is not valid, user not found' });
+    }
+
     // Check current password
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {
@@ -343,6 +393,9 @@ router.put('/change-password', auth, async (req, res) => {
 
   } catch (error) {
     console.error('Change password error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
     res.status(500).json({ message: 'Server error during password change' });
   }
 });

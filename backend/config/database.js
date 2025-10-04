@@ -41,4 +41,24 @@ const connectDB = async () => {
   }
 };
 
-module.exports = connectDB;
+// For Vercel serverless functions, we need to handle connection caching
+if (process.env.VERCEL) {
+  // Use a cached connection promise to prevent multiple connections
+  let cachedConnectionPromise = null;
+  
+  const connectDBCached = async () => {
+    if (cachedConnectionPromise) {
+      // Return existing connection promise
+      return cachedConnectionPromise;
+    }
+    
+    // Create new connection promise
+    cachedConnectionPromise = connectDB();
+    return cachedConnectionPromise;
+  };
+  
+  module.exports = connectDBCached;
+} else {
+  // For non-Vercel environments, export the original function
+  module.exports = connectDB;
+}
