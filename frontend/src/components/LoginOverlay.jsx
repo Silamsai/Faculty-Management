@@ -61,7 +61,17 @@ const LoginOverlay = ({ isOpen, onClose, onSwitchToSignup, onLogin, loading, err
       clearError();
     }
     
-    await onLogin(formData);
+    try {
+      await onLogin(formData);
+    } catch (error) {
+      console.error('Login submission error:', error);
+      // Handle network errors specifically
+      if (error.message === 'Network Error' || error.code === 'ECONNABORTED') {
+        setError('Connection timeout. Please check your internet connection and try again.');
+      } else {
+        setError(error.message || 'Login failed. Please try again.');
+      }
+    }
   };
 
   const handleForgotPasswordSubmit = async (e) => {

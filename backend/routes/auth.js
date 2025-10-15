@@ -43,18 +43,23 @@ const connectToDatabase = async () => {
   }
 };
 
-// @route   POST /api/auth/signup
+// @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/signup', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
-    console.log('Signup request received');
+    console.log('Register request received');
     
     // Ensure database connection
-    await connectToDatabase();
+    try {
+      await connectToDatabase();
+    } catch (dbError) {
+      console.error('Database connection error in register route:', dbError);
+      return res.status(500).json({ message: 'Database connection failed. Please try again later.' });
+    }
     
-    const { firstName, lastName, email, password, phone, userType, department, schoolSection } = req.body;
-    console.log('Request body:', { firstName, lastName, email, phone, userType, department, schoolSection });
+    const { name, email, password, phone, department } = req.body;
+    console.log('Request body:', { name, email, phone, department });
 
     // Check if user already exists
     console.log('Checking for existing user');
@@ -66,17 +71,17 @@ router.post('/signup', async (req, res) => {
       });
     }
 
-    // Create new user
+    // Create new user (faculty by default for this endpoint)
     console.log('Creating new user');
     const user = new User({
-      firstName,
-      lastName,
+      firstName: name.split(' ')[0] || name,
+      lastName: name.split(' ').slice(1).join(' ') || '',
       email: email.toLowerCase(),
       password,
       phone,
-      userType,
+      userType: 'faculty',
       department,
-      schoolSection
+      status: 'pending'
     });
 
     await user.save();
@@ -97,7 +102,7 @@ router.post('/signup', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error('Register error:', error);
     console.error('Error stack:', error.stack);
     
     if (error.name === 'ValidationError') {
@@ -109,7 +114,9 @@ router.post('/signup', async (req, res) => {
   }
 });
 
-// Login route with additional logging
+// @route   POST /api/auth/login
+// @desc    Login user
+// @access  Public
 router.post('/login', async (req, res) => {
   console.log('🔑 Login route accessed');
   console.log('🔑 Request body:', req.body);
@@ -118,7 +125,12 @@ router.post('/login', async (req, res) => {
     console.log('Login request received');
     
     // Ensure database connection
-    await connectToDatabase();
+    try {
+      await connectToDatabase();
+    } catch (dbError) {
+      console.error('Database connection error in login route:', dbError);
+      return res.status(500).json({ message: 'Database connection failed. Please try again later.' });
+    }
     
     const { email, password } = req.body;
     console.log('Login attempt for:', email);

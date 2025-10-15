@@ -61,6 +61,11 @@
   - Profile management
   - Admin user management functions
   - Role-based access control
+- **Faculty Management API**:
+  - Get all faculty details
+  - Add new faculty
+  - Edit/update faculty
+  - Delete faculty
 - **Email Service**: 
   - Welcome emails for new users
   - Password reset emails with secure tokens
@@ -142,7 +147,7 @@ luffy/
    cd backend
    npm run dev
    ```
-   Backend will run on `http://localhost:5000`
+   Backend will run on `http://localhost:8080`
 
 3. **Start Frontend Development Server**
    ```bash
@@ -161,7 +166,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
-PORT=5000
+PORT=8080
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -191,11 +196,17 @@ FRONTEND_URL=http://localhost:5173
 ## 🔑 API Endpoints
 
 ### Authentication
-- `POST /api/auth/signup` - User registration
+- `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
 - `POST /api/auth/forgot-password` - Request password reset
 - `POST /api/auth/reset-password` - Reset password with token
 - `GET /api/auth/verify` - Verify JWT token
+
+### Faculty Management
+- `GET /api/faculty` - Get all faculty details
+- `POST /api/faculty` - Add a new faculty
+- `PUT /api/faculty/:id` - Edit/update a faculty
+- `DELETE /api/faculty/:id` - Delete a faculty
 
 ### Leave Management
 - `POST /api/leaves/apply` - Submit leave application
@@ -241,7 +252,7 @@ FRONTEND_URL=http://localhost:5173
 4. **File Upload**: Add profile image upload functionality
 5. **Notifications**: Real-time notifications for leave approvals
 6. **Reports**: PDF generation for leave reports
-7. **Deployment**: Deploy to cloud platforms (Vercel, Heroku, etc.)
+7. **Deployment**: Deploy to cloud platforms (Vercel, Render, etc.)
 
 ## 🎉 System Status
 
@@ -249,9 +260,10 @@ FRONTEND_URL=http://localhost:5173
 - Frontend and backend completely integrated
 - All authentication flows working
 - Leave management system operational
+- Faculty management API implemented
 - Email notifications functional
 - Database persistence working
 - Error handling implemented
 - User experience optimized
 
-The Faculty Management System is now ready for use with full functionality including user registration, authentication, leave management, and administrative features!
+The Faculty Management System is now ready for use with full functionality including user registration, authentication, leave management, faculty management, and administrative features!
