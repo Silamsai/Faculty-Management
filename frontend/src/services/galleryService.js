@@ -198,7 +198,8 @@ export const getImageUrl = (imageUrl) => {
   }
   
   // Otherwise, construct the full URL
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://https://faculty-management-hsdq.onrender.com';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://faculty-management-hsdq.onrender.com';
+
   return `${baseUrl}${imageUrl}`;
 };
 

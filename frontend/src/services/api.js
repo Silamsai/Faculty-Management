@@ -2,7 +2,8 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://https://faculty-management-hsdq.onrender.com/api',
+  baseURL: process.env.REACT_APP_API_URL ||  'https://faculty-management-hsdq.onrender.com/api',
+  withCredentials: true,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
