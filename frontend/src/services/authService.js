@@ -6,7 +6,7 @@ const authService = {
   signup: async (userData) => {
     try {
       console.log('AuthService: Attempting signup', userData);
-      const response = await api.post('/auth/signup', userData);
+      const response = await api.post('/auth/register', userData);
       
       // Store token and user data
       if (response.data.token) {

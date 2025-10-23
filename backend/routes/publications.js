@@ -89,7 +89,7 @@ router.get('/export/csv', auth, async (req, res) => {
     const csv = csvHeader + csvContent;
 
     res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', `attachment; filename="publications_${req.user.firstName}_${req.user.lastName}_${new Date().toISOString().split('T')[0]}.csv"`);
+    res.setHeader('Content-Disposition', `attachment; filename="publications_${(req.user.firstName || 'user')}_${(req.user.lastName || 'publications')}_${new Date().toISOString().split('T')[0]}.csv"`);
     
     res.send(csv);
 

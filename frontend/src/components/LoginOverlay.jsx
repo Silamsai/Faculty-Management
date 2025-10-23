@@ -65,10 +65,15 @@ const LoginOverlay = ({ isOpen, onClose, onSwitchToSignup, onLogin, loading, err
       await onLogin(formData);
     } catch (error) {
       console.error('Login submission error:', error);
-      // Handle network errors specifically
-      if (error.message === 'Network Error' || error.code === 'ECONNABORTED') {
-        setError('Connection timeout. Please check your internet connection and try again.');
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        setError(error.response.data.message || 'Login failed. Please try again.');
+      } else if (error.request) {
+        // Request was made but no response received
+        setError('Network error. Please check your connection and try again.');
       } else {
+        // Something else happened
         setError(error.message || 'Login failed. Please try again.');
       }
     }

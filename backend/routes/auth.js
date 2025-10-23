@@ -16,30 +16,25 @@ router.get('/test', (req, res) => {
   });
 });
 
-// Simplified database connection for Vercel
+// Database connection function
 const connectToDatabase = async () => {
-  // In Vercel, we need to ensure connection for each request
-  if (process.env.VERCEL) {
-    console.log('Vercel environment: checking database connection');
-    
-    // If not connected, establish connection
-    if (mongoose.connection.readyState !== 1) {
-      console.log('Establishing new database connection');
-      try {
-        await mongoose.connect(process.env.MONGODB_URI, {
-          useNewUrlParser: true,
-          useUnifiedTopology: true,
-          serverSelectionTimeoutMS: 5000,
-          socketTimeoutMS: 10000,
-        });
-        console.log('Database connected successfully');
-      } catch (error) {
-        console.error('Database connection failed:', error.message);
-        throw new Error('Failed to connect to database');
-      }
-    } else {
-      console.log('Database already connected');
+  // Ensure database connection
+  if (mongoose.connection.readyState !== 1) {
+    console.log('Establishing new database connection');
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        serverSelectionTimeoutMS: 5000,
+        socketTimeoutMS: 10000,
+      });
+      console.log('Database connected successfully');
+    } catch (error) {
+      console.error('Database connection failed:', error.message);
+      throw new Error('Failed to connect to database');
     }
+  } else {
+    console.log('Database already connected');
   }
 };
 
@@ -58,8 +53,27 @@ router.post('/register', async (req, res) => {
       return res.status(500).json({ message: 'Database connection failed. Please try again later.' });
     }
     
-    const { name, email, password, phone, department } = req.body;
-    console.log('Request body:', { name, email, phone, department });
+    // Extract fields from request body
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      password, 
+      phone, 
+      department, 
+      schoolSection,
+      subjects // This field is sent by frontend but not used in User model
+    } = req.body;
+    
+    console.log('Request body:', { 
+      firstName, 
+      lastName, 
+      email, 
+      phone, 
+      department, 
+      schoolSection,
+      subjects 
+    });
 
     // Check if user already exists
     console.log('Checking for existing user');
@@ -71,16 +85,24 @@ router.post('/register', async (req, res) => {
       });
     }
 
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !phone || !department || !schoolSection) {
+      return res.status(400).json({ 
+        message: 'All fields are required.' 
+      });
+    }
+
     // Create new user (faculty by default for this endpoint)
     console.log('Creating new user');
     const user = new User({
-      firstName: name.split(' ')[0] || name,
-      lastName: name.split(' ').slice(1).join(' ') || '',
+      firstName,
+      lastName,
       email: email.toLowerCase(),
       password,
       phone,
       userType: 'faculty',
       department,
+      schoolSection,
       status: 'pending'
     });
 
@@ -134,6 +156,12 @@ router.post('/login', async (req, res) => {
     
     const { email, password } = req.body;
     console.log('Login attempt for:', email);
+
+    // Validate input
+    if (!email || !password) {
+      console.log('Missing email or password');
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
 
     // Check if user exists
     console.log('Searching for user');

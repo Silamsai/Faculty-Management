@@ -21,16 +21,16 @@ const createAdminUser = async () => {
     if (existingAdmin) {
       console.log('Admin user already exists!');
       console.log('Email: admin@edu.com');
-      console.log('Password: admin@123');
+      console.log('Password: admin@1234'); // Updated to meet 8 character requirement
       return;
     }
 
-    // Create admin user
+    // Create admin user with a password that meets the 8 character requirement
     const adminUser = new User({
       firstName: 'System',
       lastName: 'Administrator',
       email: 'admin@edu.com',
-      password: 'admin@123',
+      password: 'admin@1234', // Updated to meet 8 character requirement
       phone: '+1-555-ADMIN',
       userType: 'admin',
       department: 'computer-science',
@@ -40,7 +40,7 @@ const createAdminUser = async () => {
     await adminUser.save();
     console.log('✅ Admin user created successfully!');
     console.log('📧 Email: admin@edu.com');
-    console.log('🔐 Password: admin@123');
+    console.log('🔐 Password: admin@1234'); // Updated to meet 8 character requirement
     console.log('👤 Role: Administrator');
     console.log('');
     console.log('You can now login to the admin dashboard with these credentials.');

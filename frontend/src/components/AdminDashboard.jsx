@@ -18,10 +18,12 @@ import {
   Key,
   AlertTriangle,
   FileText,
-  Image
+  Image,
+  Calendar
 } from 'lucide-react';
 import userService from '../services/userService';
 import { getFacultyApplications } from '../services/facultyApplicationService';
+import LeaveManagement from './LeaveManagement'; // Add this import
 
 import GalleryManagement from './GalleryManagement';
 import SubjectManagement from './SubjectManagement';
@@ -371,12 +373,21 @@ const AdminDashboard = ({ user, onLogout }) => {
     { id: 5, name: 'Dr. Emily Davis', email: 'emily.davis@university.edu', role: 'dean', department: 'Mathematics', status: 'active', joinDate: '2019-08-12' }
   ];
 
-  const filteredUsers = (users.length > 0 ? users : mockUsers).filter(user => {
+  // Always use the actual users from MongoDB, only use mock users for demonstration
+  const filteredUsers = users.filter(user => {
     const matchesSearch = (user.firstName + ' ' + user.lastName).toLowerCase().includes(searchTerm.toLowerCase()) || 
                        user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterRole === 'all' || user.userType === filterRole;
     return matchesSearch && matchesFilter;
   });
+
+  // If we have no users and we're not loading, show mock users for demonstration
+  const displayUsers = users.length > 0 ? filteredUsers : (loading ? [] : mockUsers.filter(user => {
+    const matchesSearch = (user.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       user.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesFilter = filterRole === 'all' || user.role === filterRole;
+    return matchesSearch && matchesFilter;
+  }));
 
   const filteredApplications = facultyApplications.filter(application => {
     const displayName = `${application.firstName} ${application.lastName}`;
@@ -671,78 +682,98 @@ const AdminDashboard = ({ user, onLogout }) => {
                   <div className="table-cell">Actions</div>
                 </div>
                 
-                {filteredUsers.map(userData => {
-                  const displayName = userData.firstName && userData.lastName ? 
-                    `${userData.firstName} ${userData.lastName}` : 
-                    (userData.name || 'Unknown User');
-                  
-                  return (
-                    <div key={userData._id || userData.id} className="table-row">
-                      <div className="table-cell user-info">
-                        <div className="user-avatar">
-                          {displayName.split(' ').map(n => n[0]).join('')}
+                {loading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading users...</p>
+                  </div>
+                ) : displayUsers.length > 0 ? (
+                  displayUsers.map(userData => {
+                    const displayName = userData.firstName && userData.lastName ? 
+                      `${userData.firstName} ${userData.lastName}` : 
+                      (userData.name || 'Unknown User');
+                    
+                    // Use the correct properties for mock vs real users
+                    const isMockUser = !userData._id;
+                    const userId = isMockUser ? userData.id : userData._id;
+                    const userType = isMockUser ? userData.role : userData.userType;
+                    const userStatus = isMockUser ? userData.status : userData.status;
+                    const joinDate = isMockUser ? userData.joinDate : (userData.createdAt || userData.joinDate);
+                    
+                    return (
+                      <div key={userId} className="table-row">
+                        <div className="table-cell user-info">
+                          <div className="user-avatar">
+                            {displayName.split(' ').map(n => n[0]).join('')}
+                          </div>
+                          <div>
+                            <div className="user-name">{displayName}</div>
+                            <div className="user-email">{userData.email}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="user-name">{displayName}</div>
-                          <div className="user-email">{userData.email}</div>
+                        <div className="table-cell">
+                          <span className={`role-badge ${userType}`}>
+                            {userType.charAt(0).toUpperCase() + userType.slice(1)}
+                          </span>
                         </div>
-                      </div>
-                      <div className="table-cell">
-                        <span className={`role-badge ${userData.userType || userData.role}`}>
-                          {(userData.userType || userData.role).charAt(0).toUpperCase() + (userData.userType || userData.role).slice(1)}
-                        </span>
-                      </div>
-                      <div className="table-cell">{userData.department}</div>
-                      <div className="table-cell">
-                        <span className={`status-badge ${userData.status}`}>
-                          {userData.status === 'active' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                          {userData.status.charAt(0).toUpperCase() + userData.status.slice(1)}
-                        </span>
-                      </div>
-                      <div className="table-cell">
-                        {new Date(userData.createdAt || userData.joinDate).toLocaleDateString()}
-                      </div>
-                      <div className="table-cell">
-                        <div className="action-buttons-inline">
-                          <button 
-                            className="btn-icon" 
-                            title="View Details & Password"
-                            onClick={() => handleViewUserDetails(userData._id || userData.id)}
-                            disabled={loading}
-                          >
-                            <Key size={16} />
-                          </button>
-                          <button 
-                            className="btn-icon" 
-                            title="Edit User"
-                            onClick={() => handleEditUser(userData)}
-                            disabled={loading}
-                          >
-                            <Edit size={16} />
-                          </button>
-                          {userData.status === 'pending' && (
+                        <div className="table-cell">{userData.department}</div>
+                        <div className="table-cell">
+                          <span className={`status-badge ${userStatus}`}>
+                            {userStatus === 'active' ? <CheckCircle size={14} /> : <XCircle size={14} />}
+                            {userStatus.charAt(0).toUpperCase() + userStatus.slice(1)}
+                          </span>
+                        </div>
+                        <div className="table-cell">
+                          {new Date(joinDate).toLocaleDateString()}
+                        </div>
+                        <div className="table-cell">
+                          <div className="action-buttons-inline">
                             <button 
-                              className="btn-icon success" 
-                              title="Approve User"
-                              onClick={() => handleUpdateUserStatus(userData._id || userData.id, 'active')}
-                              disabled={loading}
+                              className="btn-icon" 
+                              title="View Details & Password"
+                              onClick={() => !isMockUser && handleViewUserDetails(userId)}
+                              disabled={loading || isMockUser}
                             >
-                              <CheckCircle size={16} />
+                              <Key size={16} />
                             </button>
-                          )}
-                          <button 
-                            className="btn-icon danger" 
-                            title="Delete User"
-                            onClick={() => handleDeleteUser(userData._id || userData.id, displayName)}
-                            disabled={loading}
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                            <button 
+                              className="btn-icon" 
+                              title="Edit User"
+                              onClick={() => !isMockUser && handleEditUser(userData)}
+                              disabled={loading || isMockUser}
+                            >
+                              <Edit size={16} />
+                            </button>
+                            {!isMockUser && userStatus === 'pending' && (
+                              <button 
+                                className="btn-icon success" 
+                                title="Approve User"
+                                onClick={() => handleUpdateUserStatus(userId, 'active')}
+                                disabled={loading}
+                              >
+                                <CheckCircle size={16} />
+                              </button>
+                            )}
+                            <button 
+                              className="btn-icon danger" 
+                              title="Delete User"
+                              onClick={() => !isMockUser && handleDeleteUser(userId, displayName)}
+                              disabled={loading || isMockUser}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <div className="no-users">
+                    <Users size={48} />
+                    <h3>No Users Found</h3>
+                    <p>There are currently no users matching your search criteria.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -753,6 +784,9 @@ const AdminDashboard = ({ user, onLogout }) => {
       
       case 'gallery':
         return <GalleryManagement />;
+
+      case 'leave-management': // Add this case
+        return <LeaveManagement />;
 
       case 'settings':
         return (
@@ -868,6 +902,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     { id: 'profile', label: 'My Profile', icon: User },
     { id: 'users', label: 'User Management', icon: Users },
     { id: 'faculty-applications', label: 'Faculty Applications', icon: UserPlus },
+    { id: 'leave-management', label: 'Leave Management', icon: Calendar }, // Add this line
     { id: 'subjects', label: 'Subject Management', icon: FileText },
     { id: 'gallery', label: 'Gallery Management', icon: Image },
     { id: 'settings', label: 'Settings', icon: Settings }
@@ -1313,7 +1348,6 @@ const AdminDashboard = ({ user, onLogout }) => {
           </div>
         </div>
       )}
-
     </div>
   );
 };

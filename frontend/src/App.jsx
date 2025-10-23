@@ -151,7 +151,17 @@ function App() {
       
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message || 'Login failed. Please try again.');
+      // Check if it's a network error or a server error
+      if (error.response) {
+        // Server responded with error status
+        setError(error.response.data.message || 'Login failed. Please try again.');
+      } else if (error.request) {
+        // Request was made but no response received
+        setError('Network error. Please check your connection and try again.');
+      } else {
+        // Something else happened
+        setError(error.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

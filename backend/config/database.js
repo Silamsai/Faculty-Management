@@ -11,9 +11,9 @@ const connectDB = async () => {
       throw new Error('MONGODB_URI is not defined in environment variables');
     }
 
-    // In Vercel environment, we still need to connect to MongoDB
-    if (process.env.VERCEL) {
-      console.log('Running in Vercel environment - establishing MongoDB connection');
+    // Check for deployment environment
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Running in production environment - establishing MongoDB connection');
     }
 
     // Check if already connected
@@ -32,32 +32,13 @@ const connectDB = async () => {
   } catch (error) {
     console.error('Database connection error:', error.message);
     console.error('Error stack:', error.stack);
-    // Don't exit in Vercel environment as it can cause issues
-    if (!process.env.VERCEL) {
+    // Exit on connection error in non-production environments
+    if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
     }
     throw error; // Re-throw the error so it can be handled by the calling function
   }
 };
 
-// For Vercel serverless functions, we need to handle connection caching
-if (process.env.VERCEL) {
-  // Use a cached connection promise to prevent multiple connections
-  let cachedConnectionPromise = null;
-  
-  const connectDBCached = async () => {
-    if (cachedConnectionPromise) {
-      // Return existing connection promise
-      return cachedConnectionPromise;
-    }
-    
-    // Create new connection promise
-    cachedConnectionPromise = connectDB();
-    return cachedConnectionPromise;
-  };
-  
-  module.exports = connectDBCached;
-} else {
-  // For non-Vercel environments, export the original function
-  module.exports = connectDB;
-}
+// Export the connection function
+module.exports = connectDB;

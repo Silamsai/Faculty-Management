@@ -91,10 +91,16 @@ const SignupOverlay = ({ isOpen, onClose, onSwitchToLogin, onSignup, loading, er
       return;
     }
     
-    // Default to faculty userType for all new signups
+    // Prepare signup data with correct field names
     const signupData = {
-      ...formData,
-      userType: 'faculty'
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.phone,
+      department: formData.department,
+      schoolSection: formData.schoolSection
+      // Note: We're not sending subjects array as it's not used in the backend User model
     };
     
     await onSignup(signupData);

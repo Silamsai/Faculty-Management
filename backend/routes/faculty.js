@@ -30,13 +30,14 @@ router.get('/', async (req, res) => {
 // @access  Public (for registration) but can be restricted
 router.post('/', async (req, res) => {
   try {
-    const { name, subject, email, phone, department } = req.body;
+    const { name, firstName, lastName, subject, email, phone, department } = req.body;
 
     // Validate required fields
-    if (!name || !subject || !email || !phone || !department) {
+    // Either name or both firstName and lastName are required
+    if ((!name && (!firstName || !lastName)) || !subject || !email || !phone || !department) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, subject, email, phone, and department'
+        message: 'Please provide name or firstName and lastName, subject, email, phone, and department'
       });
     }
 
@@ -55,8 +56,8 @@ router.post('/', async (req, res) => {
 
     // Create new faculty user
     const faculty = new User({
-      firstName: name.split(' ')[0] || name,
-      lastName: name.split(' ').slice(1).join(' ') || '',
+      firstName: firstName || (name ? name.split(' ')[0] : '') || name,
+      lastName: lastName || (name ? name.split(' ').slice(1).join(' ') : '') || '',
       email: email.toLowerCase(),
       password: 'temp1234', // Temporary password, should be changed by user
       phone,
@@ -102,7 +103,7 @@ router.post('/', async (req, res) => {
 // @access  Private - Admin only
 router.put('/:id', auth, authorize('admin'), async (req, res) => {
   try {
-    const { name, subject, email, phone, department } = req.body;
+    const { name, firstName, lastName, subject, email, phone, department } = req.body;
 
     // Find the faculty member
     const faculty = await User.findById(req.params.id);
@@ -116,8 +117,11 @@ router.put('/:id', auth, authorize('admin'), async (req, res) => {
 
     // Update fields if provided
     if (name !== undefined) {
-      faculty.firstName = name.split(' ')[0] || name;
-      faculty.lastName = name.split(' ').slice(1).join(' ') || '';
+      faculty.firstName = firstName || (name ? name.split(' ')[0] : '') || name;
+      faculty.lastName = lastName || (name ? name.split(' ').slice(1).join(' ') : '') || '';
+    } else {
+      if (firstName !== undefined) faculty.firstName = firstName;
+      if (lastName !== undefined) faculty.lastName = lastName;
     }
     if (email !== undefined) faculty.email = email.toLowerCase();
     if (phone !== undefined) faculty.phone = phone;
