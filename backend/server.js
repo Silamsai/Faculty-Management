@@ -1,47 +1,9 @@
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
-const mongoose = require('mongoose');
-
-// Handle different deployment scenarios (root vs backend directory)
-let connectDB;
-let authRoutes, userRoutes, leaveRoutes, publicationRoutes, facultyApplicationRoutes, galleryRoutes, scheduleChangeRoutes, subjectRoutes, facultyRoutes;
-
-try {
-  // Try importing from backend directory (when running from repo root)
-  connectDB = require('./backend/config/database');
-  authRoutes = require('./backend/routes/auth');
-  userRoutes = require('./backend/routes/users');
-  leaveRoutes = require('./backend/routes/leaves');
-  publicationRoutes = require('./backend/routes/publications');
-  facultyApplicationRoutes = require('./backend/routes/facultyApplications');
-  galleryRoutes = require('./backend/routes/gallery');
-  scheduleChangeRoutes = require('./backend/routes/scheduleChanges');
-  subjectRoutes = require('./backend/routes/subjects');
-  facultyRoutes = require('./backend/routes/faculty');
-  console.log('✅ Imported routes and config from backend directory (repo root deployment)');
-} catch (error) {
-  // Fallback to current directory imports (when running from backend directory)
-  connectDB = require('./config/database');
-  authRoutes = require('./routes/auth');
-  userRoutes = require('./routes/users');
-  leaveRoutes = require('./routes/leaves');
-  publicationRoutes = require('./routes/publications');
-  facultyApplicationRoutes = require('./routes/facultyApplications');
-  galleryRoutes = require('./routes/gallery');
-  scheduleChangeRoutes = require('./routes/scheduleChanges');
-  subjectRoutes = require('./routes/subjects');
-  facultyRoutes = require('./routes/faculty');
-  console.log('✅ Imported routes and config from current directory (backend deployment)');
-}
-
 const app = express();
-
-// Connect to MongoDB
-connectDB().catch(err => {
-  console.error('Failed to connect to MongoDB:', err);
-});
 
 // Configure CORS to allow requests from frontend
 app.use(cors({
@@ -58,27 +20,40 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/leaves", leaveRoutes);
-app.use("/api/faculty", facultyRoutes);
-app.use("/api/publications", publicationRoutes);
-app.use("/api/faculty-applications", facultyApplicationRoutes);
-app.use("/api/gallery", galleryRoutes);
-app.use("/api/schedule-changes", scheduleChangeRoutes);
-app.use("/api/subjects", subjectRoutes);
+// Import routes
+const authRoutes = require('./routes/auth');
+const userRoutes = require('./routes/users');
+const facultyRoutes = require('./routes/faculty');
+const leaveRoutes = require('./routes/leaves');
+const subjectRoutes = require('./routes/subjects');
+const publicationRoutes = require('./routes/publications');
+const galleryRoutes = require('./routes/gallery');
+const scheduleChangeRoutes = require('./routes/scheduleChanges');
+const facultyApplicationRoutes = require('./routes/facultyApplications');
+
+// Use routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/faculty', facultyRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/subjects', subjectRoutes);
+app.use('/api/publications', publicationRoutes);
+app.use('/api/gallery', galleryRoutes);
+app.use('/api/schedule-changes', scheduleChangeRoutes);
+app.use('/api/faculty-applications', facultyApplicationRoutes);
 
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Faculty Management System API is running!',
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development',
-    // vercel: process.env.VERCEL ? 'true' : 'false',
-    mongodbConnected: mongoose.connection.readyState === 1
+    environment: process.env.NODE_ENV || 'development'
   });
 });
+
+// Database connection
+const connectDB = require('./config/database');
+connectDB();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -99,5 +74,5 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌿 Environment: ${process.env.NODE_ENV}`);
+  console.log(`🌿 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
