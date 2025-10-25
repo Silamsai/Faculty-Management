@@ -4,7 +4,7 @@
 
 ### Admin
 - **Email**: admin@edu.com
-- **Password**: admin@123
+- **Password**: admin@1234
 
 ### Dean
 - **Email**: dean@edu.com
@@ -14,13 +14,11 @@
 - **Email**: vc@edu.com
 - **Password**: vc@12345
 
-### Faculty
-- **Email**: faculty@edu.com
-- **Password**: faculty@123
-
 ### Researcher
 - **Email**: researcher@edu.com
 - **Password**: researcher@123
+
+> Note: Faculty members do not have default credentials. They must register through the signup process. New faculty accounts are created with "pending" status and require approval by an admin or dean before they can log in.
 
 ## 🚀 Features
 

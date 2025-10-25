@@ -14,6 +14,8 @@ const connectDB = async () => {
 };
 
 // Create admin user
+// Note: Only administrative roles (admin, dean, vc, researcher) need default accounts.
+// Faculty members register through the normal registration process.
 const createAdminUser = async () => {
   try {
     // Check if admin already exists
